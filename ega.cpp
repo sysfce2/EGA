@@ -7,6 +7,7 @@
 #ifdef _WIN32
     #define UTF_WIDE_IS_UTF16
     #include <windows.h>
+    #include <shlwapi.h>
 #endif
 #include "UTF/utf.hpp"
 #include <unordered_map>
@@ -1254,6 +1255,43 @@ arg_t EGA_FN EGA_dumpln(const args_t& args)
     return nullptr;
 }
 
+bool EGA_file_security_0(std::string& filename, const char* tag)
+{
+#if defined(_WIN32) && defined(RISOHEDITOR)
+    mstr_trim(filename, " \t\r\n");
+    if (filename.empty())
+        return false;
+
+    WCHAR filepath[MAX_PATH];
+    MultiByteToWideChar(CP_UTF8, 0, filename.c_str(), -1, filepath, _countof(filepath));
+    filepath[_countof(filepath) - 1] = 0;
+
+    WCHAR module[MAX_PATH];
+    GetModuleFileNameW(nullptr, module, _countof(module));
+
+    WCHAR path[MAX_PATH];
+    if (PathIsRelativeW(filepath))
+    {
+        lstrcpynW(path, module, _countof(path));
+        PathRemoveFileSpecW(path);
+        PathAppendW(path, filepath);
+    }
+    else
+    {
+        lstrcpynW(path, filepath, _countof(path));
+    }
+
+    CHAR utf8_path[MAX_PATH];
+    WideCharToMultiByte(CP_UTF8, 0, path, -1, utf8_path, _countof(utf8_path), nullptr, nullptr);
+    utf8_path[_countof(utf8_path) - 1] = 0;
+    filename = utf8_path;
+    EGA_do_print("%s: %s\n", tag, utf8_path);
+    return true;
+#else
+    return true;
+#endif
+}
+
 bool EGA_file_security(std::string& filename)
 {
 #if defined(_WIN32) && defined(RISOHEDITOR)
@@ -2411,7 +2449,7 @@ arg_t EGA_FN EGA_load(const args_t& args)
 {
     EVAL_DEBUG();
     std::string filename = EGA_get_str(args[0]);
-    if (!EGA_file_security(filename))
+    if (!EGA_file_security_0(filename, "load"))
     {
         EGA_hit_security();
         return make_arg<AstInt>(0);

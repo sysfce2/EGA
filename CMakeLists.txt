@@ -39,10 +39,12 @@ endif()
 
 # ega.exe
 add_executable(ega ega.cpp)
+target_link_libraries(ega PRIVATE shlwapi)
 
 # libega.a
 add_library(libega STATIC ega.cpp)
 set_target_properties(libega PROPERTIES PREFIX "")
 target_compile_definitions(libega PRIVATE -DEGA_LIB)
+target_link_libraries(libega PRIVATE shlwapi)
 
 ##############################################################################
