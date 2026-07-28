@@ -859,6 +859,10 @@ Writes a file with contents.
 
 Returns `1` if file writing is successful. Returns `0` otherwise.
 
+NOTE: For security reasons, RisohEditor EGA cannot output files with the extensions "exe", "dll", or "sys".
+
+NOTE: For security reasons, RisohEditor EGA cannot write to system folders.
+
 ### EGA `set` Function
 
 ```txt
@@ -1112,6 +1116,10 @@ EGA function 'RES_save':
 - `"(ms-msgtbl)"`
 
 For example: `RES_save("C:\Users\katahiromz\Desktop\a.res", "(sep-lang)(compress)")`;
+
+NOTE: For security reasons, RisohEditor EGA cannot output files with the extensions "exe", "dll", or "sys".
+
+NOTE: For security reasons, RisohEditor EGA cannot write to system folders.
 
 ### EGA `RES_search` Function
 
