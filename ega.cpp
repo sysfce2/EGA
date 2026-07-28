@@ -7,6 +7,7 @@
 #ifdef _WIN32
     #define UTF_WIDE_IS_UTF16
     #include <windows.h>
+    #include <shlobj.h>
     #include <shlwapi.h>
 #endif
 #include "UTF/utf.hpp"
@@ -1286,73 +1287,90 @@ bool EGA_file_security_0(std::string& filename, const char* tag)
     utf8_path[_countof(utf8_path) - 1] = 0;
     filename = utf8_path;
     EGA_do_print("%s: %s\n", tag, utf8_path);
-    return true;
-#else
-    return true;
 #endif
+    return true;
 }
 
-bool EGA_file_security(std::string& filename)
+#if defined(_WIN32) && defined(RISOHEDITOR)
+static bool EGA_is_in_system_path(PCWSTR path)
+{
+    static const INT c_ids[] =
+    {
+        CSIDL_WINDOWS,
+        CSIDL_PROGRAM_FILES,
+        CSIDL_PROGRAM_FILESX86,
+        CSIDL_PROGRAM_FILES_COMMON,
+        CSIDL_PROGRAM_FILES_COMMONX86,
+    };
+    for (auto csidl : c_ids)
+    {
+        WCHAR szPath[MAX_PATH];
+        SHGetSpecialFolderPathW(nullptr, szPath, csidl, FALSE);
+        PathAddBackslashW(szPath);
+        if (StrStrIW(path, szPath) == path)
+            return true;
+    }
+    return false;
+}
+#endif
+
+bool EGA_file_security_1(std::string& filename, const char* tag)
 {
 #if defined(_WIN32) && defined(RISOHEDITOR)
     mstr_trim(filename, " \t\r\n");
     if (filename.empty())
         return false;
 
-    // Get executable's directory
+    PCSTR dotext = PathFindExtensionA(filename.c_str());
+    if (lstrcmpiA(dotext, ".exe") == 0 || lstrcmpiA(dotext, ".dll") == 0 ||
+        lstrcmpiA(dotext, ".sys") == 0)
+    {
+        return false;
+    }
+
     WCHAR module[MAX_PATH];
-    if (GetModuleFileNameW(nullptr, module, _countof(module)) == 0)
-        return false;
+    GetModuleFileNameW(nullptr, module, _countof(module));
+    BOOL bModuleInSystem = EGA_is_in_system_path(module);
 
-    wchar_t* pch = wcsrchr(module, L'\\');
-    if (pch)
-        *pch = 0;  // Now 'module' contains only the directory
+    WCHAR wfilename[MAX_PATH];
+    MultiByteToWideChar(CP_UTF8, 0, filename.c_str(), -1, wfilename, _countof(wfilename));
+    wfilename[_countof(wfilename) - 1] = 0;
 
-    // Convert input filename to wide string
-    wchar_t wfilename[MAX_PATH];
-    if (MultiByteToWideChar(CP_UTF8, 0, filename.c_str(), -1, wfilename, _countof(wfilename)) == 0)
-        return false;
-
-    // Get full absolute path of the requested file
-    wchar_t curdir[MAX_PATH], full_path[MAX_PATH];
-    GetCurrentDirectoryW(_countof(curdir), curdir);
-    if (!SetCurrentDirectoryW(module) ||
-        GetFullPathNameW(wfilename, _countof(full_path), full_path, nullptr) == 0)
+    WCHAR path[MAX_PATH];
+    if (PathIsRelativeW(wfilename))
     {
-        SetCurrentDirectoryW(curdir);
-        return false;
+        if (bModuleInSystem)
+        {
+            GetTempPathW(_countof(path), path);
+            PathRemoveBackslashW(path);
+        }
+        else
+        {
+            PathRemoveFileSpecW(module);
+            lstrcpynW(path, module, _countof(module));
+        }
+        PathAppendW(path, wfilename);
     }
-    SetCurrentDirectoryW(curdir);
-
-    // Normalize both paths (lowercase + ensure trailing backslash on module dir)
-    std::wstring module_dir = module;
-    std::wstring file_path = full_path;
-
-    // Lowercase
-    std::wstring module_dir_lower = module_dir;
-    std::wstring file_path_lower = file_path;
-    for (auto& c : module_dir_lower) if (c >= L'A' && c <= L'Z') c += 32;
-    for (auto& c : file_path_lower)  if (c >= L'A' && c <= L'Z') c += 32;
-
-    if (!module_dir_lower.empty() && module_dir_lower.back() != L'\\')
-        module_dir_lower += L'\\';
-
-    // Security check: file must be inside the executable's directory
-    if (file_path_lower.size() < module_dir_lower.size() ||
-        file_path_lower.compare(0, module_dir_lower.size(), module_dir_lower.c_str()) != 0)
+    else
     {
-        return false;
+        lstrcpynW(path, module, _countof(path));
     }
 
-    char real_path[MAX_PATH];
-    if (WideCharToMultiByte(CP_UTF8, 0, file_path.c_str(), -1, real_path, _countof(real_path),
+    WCHAR fullpath[MAX_PATH], *pchFilePart;
+    GetFullPathNameW(path, _countof(fullpath), fullpath, &pchFilePart);
+    if (EGA_is_in_system_path(fullpath))
+        return false;
+
+    char utf8path[MAX_PATH];
+    if (WideCharToMultiByte(CP_UTF8, 0, fullpath, -1, utf8path, _countof(utf8path),
                             nullptr, nullptr) == 0)
     {
         return false;
     }
-    filename = real_path;
-#endif
 
+    EGA_do_print("%s: %s\n", tag, utf8path);
+    filename = utf8path;
+#endif
     return true;
 }
 
@@ -2496,7 +2514,7 @@ arg_t EGA_FN EGA_save(const args_t& args)
     EVAL_DEBUG();
     std::string filename = EGA_get_str(args[0]);
     std::string contents = EGA_get_str(args[1]);
-    if (!EGA_file_security(filename))
+    if (!EGA_file_security_1(filename, "save"))
     {
         EGA_hit_security();
         return make_arg<AstInt>(0);

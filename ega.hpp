@@ -643,7 +643,7 @@ std::string EGA_get_str(const arg_t& ast);
 std::shared_ptr<AstContainer> EGA_get_array(const arg_t& ast);
 void EGA_print_logo(const char *filename = nullptr);
 bool EGA_file_security_0(std::string& filename, const char* tag);
-bool EGA_file_security(std::string& filename);
+bool EGA_file_security_1(std::string& filename, const char* tag);
 void EGA_hit_security(void);
 
 } // namespace EGA
