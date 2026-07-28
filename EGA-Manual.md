@@ -17,7 +17,7 @@ Please start up EGA. The following text will be displayed:
 
 ```txt
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-@ EGA Version 14 by katahiromz                  @
+@ EGA Version 15 by katahiromz                  @
 @ Type 'exit' to exit. Type 'help' to see help. @
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 ```
@@ -66,6 +66,10 @@ EGA function 'print':
 The detailed descriptions of the EGA functions will be described later.
 
 ## What's New
+
+Change in Version 15:
+
+- Added `RES_extract` function.
 
 Change in Version 14:
 
@@ -657,8 +661,6 @@ Loads the file contents.
 
 Returns the binary string or `0`.
 
-NOTE: RisohEditor EGA cannot read files outside the application's execution path.
-
 ### EGA `localtime` Function
 
 ```txt
@@ -857,8 +859,6 @@ Writes a file with contents.
 
 Returns `1` if file writing is successful. Returns `0` otherwise.
 
-NOTE: RisohEditor EGA cannot write files outside the application's execution path.
-
 ### EGA `set` Function
 
 ```txt
@@ -961,6 +961,7 @@ RisohEditor EGA has the following functions as EGA extension:
 - `RES_clone_by_name`
 - `RES_const`
 - `RES_delete`
+- `RES_extract`
 - `RES_get_binary`
 - `RES_get_text`
 - `RES_load`
@@ -1025,13 +1026,30 @@ EGA function 'RES_delete':
   usage: RES_delete([type[, name[, lang]]])
 ```
 
-`RES_delete` deletes the resource items.
+Deletes the resource items.
 
 `type` must be an integer or a string of a resource type. If `type` is `"*"` or omitted, then search all resource types.
 `name` must be an integer or a string of a resource name. If `name` is `"*"` or omitted, then search all resource names.
 `lang` must be an integer that specifies the language ID. If `lang` is `-(1)` or omitted, then search all resource languages.
 
 Returns `1` if deleted. Otherwise returns `0`.
+
+### EGA `RES_extract` Function
+
+```txt
+EGA function 'RES_extract':
+  arity: 3..4
+  usage: RES_extract(type, name, lang[, filename])
+```
+
+Extracts resource data.
+
+`type` must be an integer or a string of a resource type.
+`name` must be an integer or a string of a resource name.
+`lang` must be an integer that specifies the language ID.
+`filename` must be a string to extract. If `filename` was omitted, a preferred filename will be used.
+
+Returns the pathname of the extracted file if successful. Returns zero if failed.
 
 ### EGA `RES_get_binary` Function
 
@@ -1068,8 +1086,6 @@ EGA function 'RES_load':
 
 `options` is an empty string or `"(no-load-res-h)"`;
 
-NOTE: RisohEditor EGA cannot read files outside the application's execution path.
-
 ### EGA `RES_save` Function
 
 ```txt
@@ -1096,8 +1112,6 @@ EGA function 'RES_save':
 - `"(ms-msgtbl)"`
 
 For example: `RES_save("C:\Users\katahiromz\Desktop\a.res", "(sep-lang)(compress)")`;
-
-NOTE: RisohEditor EGA cannot write files outside the application's execution path.
 
 ### EGA `RES_search` Function
 
