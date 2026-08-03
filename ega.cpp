@@ -7,6 +7,9 @@
 #ifdef _WIN32
     #define UTF_WIDE_IS_UTF16
     #include <windows.h>
+    #ifndef WINAPI_FAMILY_ONE_PARTITION
+        #define WINAPI_FAMILY_ONE_PARTITION(PartitionSet, Partition) 0
+    #endif
     #include <shlobj.h>
     #include <shlwapi.h>
 #endif
